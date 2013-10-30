@@ -1,1 +1,10 @@
-java -classpath libs/annotationdiffplugin.jar:libs/MMAX2.jar:libs/batik-1.5.1/batik-awt-util.jar:libs/batik-1.5.1/batik-dom.jar:libs/batik-1.5.1/batik-svggen.jar:libs/batik-1.5.1/batik-util.jar:libs/batik-1.5.1/batik-xml.jar:libs/jakarta-oro-2.0.8/jakarta-oro-2.0.8.jar:libs/xalan-j_2_4_D1/xalan.jar:libs/xalan-j_2_4_D1/xml-apis.jar:libs/xerces-2_0_2/xercesImpl.jar:libs/xerces-2_0_2/xmlParserAPIs.jar:. org.eml.MMAX2.core.MMAX2 $1 
+#!/bin/bash
+# alternative MMAX2 startup script by Niels Ott <nott@sfs.uni-tuebingen.de>
+# May 2013
+#
+# automatically handles class path, working directory and command line arguments
+
+scriptname=$(readlink -f "$0")
+localdir=$(dirname "$scriptname")
+classpath=$(find "$localdir/libs" -iname "*.jar" | tr '\n' ':')
+exec java -cp "$classpath" org.eml.MMAX2.core.MMAX2 $*
