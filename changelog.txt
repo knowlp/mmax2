@@ -1,0 +1,3 @@
+Changes in 1.13.002
+- Fixed MarkableComparator issue which caused an exception when markables with non-integer IDs (created by base data editing) were processed
+- Moved AnnotationDiffWindow to external file
