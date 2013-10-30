@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path=""/>
+	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="libs/batik-1.5.1/batik-awt-util.jar"/>
 	<classpathentry kind="lib" path="libs/batik-1.5.1/batik-dom.jar"/>
@@ -12,5 +12,5 @@
 	<classpathentry kind="lib" path="libs/xalan-j_2_4_D1/xml-apis.jar"/>
 	<classpathentry kind="lib" path="libs/xerces-2_0_2/xercesImpl.jar"/>
 	<classpathentry kind="lib" path="libs/xerces-2_0_2/xmlParserAPIs.jar"/>
-	<classpathentry kind="output" path=""/>
+	<classpathentry kind="output" path="bin"/>
 </classpath>
