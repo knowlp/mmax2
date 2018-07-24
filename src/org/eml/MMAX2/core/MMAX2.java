@@ -35,10 +35,15 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import javax.swing.Box;
@@ -61,6 +66,8 @@ import javax.swing.Timer;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.batik.svggen.SVGGraphics2D;
 import org.apache.xerces.dom.DocumentImpl;
@@ -87,6 +94,9 @@ import org.eml.MMAX2.gui.windows.MarkableLevelControlWindow;
 import org.eml.MMAX2.plugin.MMAX2Plugin;
 import org.eml.MMAX2.utils.MMAX2Constants;
 import org.eml.MMAX2.utils.MMAX2Utils;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
@@ -123,11 +133,15 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
     
     private JMenuItem wizard = null;
     private JMenu settingsMenu = null;
+    /*addedByTolga*/
+    private JMenu casprMenu= null;
+    
     private JMenu displayMenu = null;
     private JMenu toolsMenu = null;
     private JMenu browserMenu = null;
     private JMenu showInPopupMenu = null;
-    private JMenu switchesMenu = null;    
+    private JMenu switchesMenu = null;
+    
         
     private JMenu pluginMenu = null;
     private JMenuItem batchPluginMenuItem = null;
@@ -1089,6 +1103,9 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
         setBrowserItem.setEnabled(true);
         pointerBrowserItem.setEnabled(true);
         settingsMenu.setEnabled(true);
+        /*addedByTolga*/
+        casprMenu.setEnabled(true);
+        
         displayMenu.setEnabled(true);
         showMLCPBox.setEnabled(true);
         currentDiscourse.getCurrentMarkableChart().initializeSaveMenu(saveLevelMenu);        
@@ -1189,6 +1206,138 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
         }        
     }
         
+    
+    /************************************Tolga*********************************************************/
+    
+    static class markable{
+    	int first;
+    	int last;
+    	int height;
+    	int corefc;
+    	
+    	public markable(int start, int end, String coref) {
+    		          this.first = start;
+    		          this.last = end;
+    		          this.corefc = Integer.parseInt(coref);
+    		          this.height = last-first;
+    		     }
+    	public int getHeight()	{		return height;		}
+    }
+
+    static class multValue{
+    	List<markable> list;
+    	int max;    }
+    
+    public static multValue readFile(File xmlFile)
+	{
+		List<markable> markArr = new ArrayList<markable>();
+		int max = 0;
+		try {
+			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+			Document doc = dBuilder.parse(xmlFile);
+			NodeList nodeList = doc.getDocumentElement().getChildNodes();
+			
+			String start, end, coref;
+			int first, last;
+			for (int i = 0; i < nodeList.getLength(); i++) {
+
+				Node node = nodeList.item(i);
+						
+				if (node.getNodeType() == Node.ELEMENT_NODE) {
+
+					Element element = (Element) node;
+					
+					end = element.getAttribute("span").substring(element.getAttribute("span").lastIndexOf('_')+1);
+					
+					if (element.getAttribute("span").indexOf('.') != -1) start = element.getAttribute("span").substring(5, element.getAttribute("span").indexOf('.'));
+					else start = end;
+					first = Integer.parseInt(start);
+					last = Integer.parseInt(end);
+					if (last > max)	max = last;
+					
+					
+					coref = element.getAttribute("coref_class");
+					if(coref.indexOf('_') != -1) coref = coref.substring(4);
+					else coref = "-1";
+					
+					markArr.add(new markable(first, last, coref));
+				}
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		multValue theList = new multValue();
+		theList.list = markArr;
+		theList.max = max;
+		return theList;
+	}
+    
+    public static void writeFile(List<markable> markArr, int max)
+	{
+		BufferedWriter bw = null;
+		FileWriter fw = null;
+		
+		try {
+			File file = new File("\\Users\\TolgaOzturk\\Desktop\\out.conll");
+			if (!file.exists()) 		file.createNewFile();
+			fw = new FileWriter(file.getAbsoluteFile(), true);
+			bw = new BufferedWriter(fw);
+			int k = 0;
+			int m = 0;
+		
+			for (int i = 1; i <= max ; i++)
+			{
+				
+				bw.write(Integer.toString(i));
+				k = 0;
+				m = 0;
+				
+				for (int j = 0; j < markArr.size(); j++) //bir bitis "x)" oluyor mu?
+				{
+					if (markArr.get(j).corefc != -1 && markArr.get(j).last == i && markArr.get(j).first != i)
+					{
+							k++;
+							break;
+					}
+					if (markArr.get(j).corefc != -1 && markArr.get(j).first == i)	m++; //break yok cunku asil amac bitisi count etmek, bu linein amaci en azindan baslangic var mi ona bakmak
+				}
+				
+				for (int j = markArr.size()-1; j >= 0 ; j--) //kisa olandan basliyo
+				{
+					if (markArr.get(j).corefc != -1 && markArr.get(j).last == i)
+					{
+						if(markArr.get(j).first == i && k > 0)	bw.write(" (" + Integer.toString(markArr.get(j).corefc) + ")"); //sonrasinda bir bitis oluyorsa (k>0) yap
+						else if(markArr.get(j).first != i)	bw.write(" " + Integer.toString(markArr.get(j).corefc) + ")");
+					}
+				}
+				for (int j = 0; j < markArr.size(); j++)
+				{
+					if (markArr.get(j).corefc != -1 && markArr.get(j).first == i)
+					{
+						if (markArr.get(j).last != i)	bw.write(" (" + Integer.toString(markArr.get(j).corefc));
+						else if (k==0) bw.write(" (" + Integer.toString(markArr.get(j).corefc) + ")"); //tekli
+					}
+				}
+				if(m == 0 && k ==0)	bw.write("  -");
+				bw.newLine();
+			}
+		
+		} catch (IOException e) {	e.printStackTrace();	} 
+		finally {
+			try {
+				if (bw != null)	bw.close();
+				if (fw != null)	fw.close();
+			} catch (IOException ex) {	ex.printStackTrace();	}
+		}
+	}
+    
+    /*******************************************Tolga********************************************************/
+    
+    
+    
+    
     private final void createMenu()
     {
         JMenuBar menu = new JMenuBar();
@@ -1304,9 +1453,48 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
         exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_MASK));
         fileMenu.add(exit);        
         menu.add(fileMenu);                            
-        
         settingsMenu = new JMenu("Settings");
-
+        
+        
+        
+        /*addedByTolga*/
+        casprMenu = new JMenu("caspr");
+       
+        JCheckBoxMenuItem runWithCasprActionMenuItem = new JCheckBoxMenuItem("Run project with caspr tool");
+        runWithCasprActionMenuItem.setFont(MMAX2.getStandardFont());
+        runWithCasprActionMenuItem.setSelected(false);
+        
+        runWithCasprActionMenuItem.addActionListener(new ActionListener()
+        {
+           public void actionPerformed(java.awt.event.ActionEvent ae)
+           {
+        	   JFileChooser fileC = new JFileChooser();
+        	   if(fileC.showOpenDialog(null) == JFileChooser.APPROVE_OPTION)
+        	   {
+        		   java.io.File casprFile = fileC.getSelectedFile();
+           		   File xmlFile = new File(casprFile.getParentFile().getAbsolutePath() + "\\Markables\\002_htc_abn_coref_level.xml");
+           		   
+           		   System.out.println(xmlFile.getAbsolutePath());
+           		   
+           		   multValue multiple = readFile(xmlFile);
+           		   List<markable> markArr = multiple.list;
+           		   int max =  multiple.max;
+           		   markArr.sort((markable m1,markable m2)->m2.getHeight()-m1.getHeight()); //buyukten kucuge (decremental)
+           		   
+        		
+           		   writeFile(markArr, max);
+        	   }
+                //setRunWithCasprAction(source.isSelected());
+           }
+            
+        });
+        casprMenu.add(runWithCasprActionMenuItem);
+        
+        
+        
+        
+        /*****************************************************************************************************************************/
+        
         settingsMenu.setEnabled(false);
         
         enableBasedataEditing = new JCheckBoxMenuItem("Enable base data editing");
@@ -1413,7 +1601,10 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
         });
         settingsMenu.add(selectAfterCreationMenuItem);        
         
-        menu.add(settingsMenu);   
+        menu.add(settingsMenu);
+        
+        /*addedByTolga*/
+        menu.add(casprMenu);
                 
         displayMenu = new JMenu("Display");
         displayMenu.setEnabled(false);

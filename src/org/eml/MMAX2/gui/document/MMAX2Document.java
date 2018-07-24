@@ -37,7 +37,8 @@ public class MMAX2Document extends DefaultStyledDocument
     
     private MMAX2 mmax2 = null;
     
-    /** Creates new MMAX2Document */
+    /** Creates new MMAX2Document 
+     * @wbp.parser.entryPoint*/
     public MMAX2Document(String currentDisplayFontName, int currentDisplayFontSize) 
     {       
         super();               
