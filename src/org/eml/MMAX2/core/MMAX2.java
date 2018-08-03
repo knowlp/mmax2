@@ -38,16 +38,19 @@ import java.awt.event.WindowEvent;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Scanner;
 import java.util.StringTokenizer;
 
 import javax.swing.Box;
 import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
@@ -60,6 +63,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.JViewport;
 import javax.swing.KeyStroke;
 import javax.swing.Timer;
@@ -1207,7 +1211,7 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
     }
         
     
-    /************************************Tolga*********************************************************/
+    /************************************Tolga*******************************************************************************************/
     
     static class markable{
     	int first;
@@ -1274,14 +1278,49 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
 		return theList;
 	}
     
-    public static void writeFile(List<markable> markArr, int max)
+    public static void Tutorial(List<markable> markArr, int max)
+    {
+    	JFrame frame = new JFrame();    	
+    	JPanel jp = new JPanel();
+    	JLabel jl = new JLabel();
+    	JTextField jt = new JTextField("Please Enter The Name of The Output (.conll) File", 30);
+    	JButton jb = new JButton("Enter");
+    	
+    	frame.setTitle("Name of The Output File");
+    	frame.setLocationRelativeTo(null);
+    	frame.setVisible(true);
+    	frame.setSize(400, 200);
+    	jp.add(jt);
+    	
+    	jb.addActionListener(new ActionListener()
+        {
+           public void actionPerformed(java.awt.event.ActionEvent ae)
+           {
+        	   String input = jt.getText();
+        	   jl.setText(input);
+        	   writeFile(markArr, max, input);
+        	   frame.setVisible(false);
+           }
+        });
+    	
+    	jp.add(jb);
+    	jp.add(jl);
+    	frame.add(jp);
+    }
+    
+    
+    public static void writeFile(List<markable> markArr, int max, String input)
 	{
 		BufferedWriter bw = null;
 		FileWriter fw = null;
-		
 		try {
-			File file = new File("\\Users\\TolgaOzturk\\Desktop\\out.conll");
-			if (!file.exists()) 		file.createNewFile();
+			File file = new File("\\Users\\TolgaOzturk\\Desktop\\ "+ input + ".conll");
+			
+			if (file.exists()) 		{
+					System.out.println("There was a file with the same name, its deleted now!");
+					file.delete();		}
+				
+			file.createNewFile();
 			fw = new FileWriter(file.getAbsoluteFile(), true);
 			bw = new BufferedWriter(fw);
 			int k = 0;
@@ -1323,6 +1362,7 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
 				if(m == 0 && k ==0)	bw.write("  -");
 				bw.newLine();
 			}
+			System.out.println(input + ".conll file is created on the desktop!");
 		
 		} catch (IOException e) {	e.printStackTrace();	} 
 		finally {
@@ -1333,7 +1373,7 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
 		}
 	}
     
-    /*******************************************Tolga********************************************************/
+    /*******************************************Tolga************************************************************************************/
     
     
     
@@ -1350,7 +1390,6 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
            {
                 requestLoadFile();
            }
-            
         });
         fileMenu.add(loadFile);
     
@@ -1457,7 +1496,7 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
         
         
         
-        /*addedByTolga*/
+        /*********************************************addedByTolga******************************************************************/
         casprMenu = new JMenu("caspr");
        
         JCheckBoxMenuItem runWithCasprActionMenuItem = new JCheckBoxMenuItem("Run project with caspr tool");
@@ -1472,28 +1511,36 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
         	   if(fileC.showOpenDialog(null) == JFileChooser.APPROVE_OPTION)
         	   {
         		   java.io.File casprFile = fileC.getSelectedFile();
-           		   File xmlFile = new File(casprFile.getParentFile().getAbsolutePath() + "\\Markables\\002_htc_abn_coref_level.xml");
+           		   File xmlFile = new File(casprFile.getParentFile().getAbsolutePath() + "\\Markables");
            		   
-           		   System.out.println(xmlFile.getAbsolutePath());
+           		   File[] matchingFiles = xmlFile.listFiles(new FilenameFilter() {
+           		    public boolean accept(File dir, String name) {
+           		        return name.contains("coref") && name.endsWith("xml");
+           		    }		});
            		   
-           		   multValue multiple = readFile(xmlFile);
-           		   List<markable> markArr = multiple.list;
-           		   int max =  multiple.max;
-           		   markArr.sort((markable m1,markable m2)->m2.getHeight()-m1.getHeight()); //buyukten kucuge (decremental)
-           		   
-        		
-           		   writeFile(markArr, max);
+           		   if(matchingFiles.length == 0)
+           			   JOptionPane.showMessageDialog(null, "There is no Coreference Annotations in this folder, Caspr can not be called!");
+           		   else {
+	           		   xmlFile = matchingFiles[0];
+	           		   System.out.println("Reading: " + xmlFile.getAbsolutePath());
+	           		   
+	           		   multValue multiple = readFile(xmlFile);
+	           		   List<markable> markArr = multiple.list;
+	           		   int max =  multiple.max;
+	           		   markArr.sort((markable m1,markable m2)->m2.getHeight()-m1.getHeight()); //buyukten kucuge (decremental)
+	           		   
+	        		
+	           		   Tutorial(markArr, max);
+           		   }
         	   }
-                //setRunWithCasprAction(source.isSelected());
            }
-            
         });
         casprMenu.add(runWithCasprActionMenuItem);
         
         
         
         
-        /*****************************************************************************************************************************/
+        /***************************Tolga***********************************************************************************************/
         
         settingsMenu.setEnabled(false);
         
