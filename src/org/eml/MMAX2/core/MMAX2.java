@@ -35,12 +35,14 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1302,19 +1304,34 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
         	   frame.setVisible(false);
            }
         });
-    	
     	jp.add(jb);
     	jp.add(jl);
     	frame.add(jp);
     }
     
+    public static void runCaspr() throws IOException, InterruptedException		//this function (Caspr) works only in Linux, because Caspr could not be worked in Windows
+    {
+	    Process p;
+		File file = new File(System.getProperty("user.dir"));
+		p = Runtime.getRuntime().exec("./runall.sh", null, new File(file.getAbsolutePath() + "/caspr-coreference-tool/examples"));
+		BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String cOutput;
+		while((cOutput = br.readLine()) != null)
+			System.out.println(cOutput);
+		
+		 p.waitFor();
+	     System.out.println ("exit: " + p.exitValue());
+	     p.destroy();
+    }
     
     public static void writeFile(List<markable> markArr, int max, String input)
 	{
 		BufferedWriter bw = null;
 		FileWriter fw = null;
 		try {
-			File file = new File("\\Users\\TolgaOzturk\\Desktop\\ "+ input + ".conll");
+			
+			File file = new File(System.getProperty("user.dir"));
+			file = new File(file.getAbsolutePath() + "/caspr-coreference-tool/examples/auto/inputs/" + input + ".conll");
 			
 			if (file.exists()) 		{
 					System.out.println("There was a file with the same name, its deleted now!");
@@ -1362,8 +1379,18 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
 				if(m == 0 && k ==0)	bw.write("  -");
 				bw.newLine();
 			}
-			System.out.println(input + ".conll file is created on the desktop!");
+			System.out.println(input + ".conll file is created!");
+			
+			
+			try {
+				System.out.println("Running Caspr: ");
+				runCaspr();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		
+			
+			
 		} catch (IOException e) {	e.printStackTrace();	} 
 		finally {
 			try {
@@ -1373,7 +1400,7 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
 		}
 	}
     
-    /*******************************************Tolga************************************************************************************/
+    /*******************************************************************************************************************************/
     
     
     
@@ -1511,7 +1538,7 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
         	   if(fileC.showOpenDialog(null) == JFileChooser.APPROVE_OPTION)
         	   {
         		   java.io.File casprFile = fileC.getSelectedFile();
-           		   File xmlFile = new File(casprFile.getParentFile().getAbsolutePath() + "\\Markables");
+           		   File xmlFile = new File(casprFile.getParentFile().getAbsolutePath() + "/Markables");
            		   
            		   File[] matchingFiles = xmlFile.listFiles(new FilenameFilter() {
            		    public boolean accept(File dir, String name) {
