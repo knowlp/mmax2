@@ -43,7 +43,9 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1213,7 +1215,7 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
     }
         
     
-    /************************************Tolga*******************************************************************************************/
+/************************************belowIsAddedByTolga**************************************************************************************************/
     
     static class markable{
     	int first;
@@ -1239,8 +1241,8 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
 		List<markable> markArr = new ArrayList<markable>();
 		int max = 0;
 		try {
-			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+			javax.xml.parsers.DocumentBuilderFactory dbFactory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+			javax.xml.parsers.DocumentBuilder dBuilder = dbFactory.newDocumentBuilder(); //XERCESI CLASSPATHE EKLE!
 			Document doc = dBuilder.parse(xmlFile);
 			NodeList nodeList = doc.getDocumentElement().getChildNodes();
 			
@@ -1280,7 +1282,7 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
 		return theList;
 	}
     
-    public static void Tutorial(List<markable> markArr, int max)
+    public static void conversionOutputName(List<markable> markArr, int max)
     {
     	JFrame frame = new JFrame();    	
     	JPanel jp = new JPanel();
@@ -1307,21 +1309,6 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
     	jp.add(jb);
     	jp.add(jl);
     	frame.add(jp);
-    }
-    
-    public static void runCaspr() throws IOException, InterruptedException		//this function (Caspr) works only in Linux, because Caspr could not be worked in Windows
-    {
-	    Process p;
-		File file = new File(System.getProperty("user.dir"));
-		p = Runtime.getRuntime().exec("./runall.sh", null, new File(file.getAbsolutePath() + "/caspr-coreference-tool/examples"));
-		BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-		String cOutput;
-		while((cOutput = br.readLine()) != null)
-			System.out.println(cOutput);
-		
-		 p.waitFor();
-	     System.out.println ("exit: " + p.exitValue());
-	     p.destroy();
     }
     
     public static void writeFile(List<markable> markArr, int max, String input)
@@ -1379,18 +1366,7 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
 				if(m == 0 && k ==0)	bw.write("  -");
 				bw.newLine();
 			}
-			System.out.println(input + ".conll file is created!");
-			
-			
-			try {
-				System.out.println("Running Caspr: ");
-				runCaspr();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		
-			
-			
+			System.out.println(input + ".conll file is created!\n");
 		} catch (IOException e) {	e.printStackTrace();	} 
 		finally {
 			try {
@@ -1400,7 +1376,94 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
 		}
 	}
     
-    /*******************************************************************************************************************************/
+    public static void runCaspr() throws IOException	//this function (Caspr) could not be worked in Windows
+    {
+    	int	FAIL=0;
+    	File file = new File(System.getProperty("user.dir"));
+    	file = new File(file.getAbsolutePath() + "/caspr-coreference-tool/examples/tmp/");
+    	if (file.exists()) {
+    		String[]entries = file.list();	//deleting the files inside of the tmp folder
+    		for(String s: entries){
+    		    File currentFile = new File(file.getPath(), s);
+    		    currentFile.delete();
+    		}
+    		file.delete(); //deleting tmp
+    	}
+    	file.mkdir(); // created a new empty folder called "tmp" into the examples
+    	
+    	File AUTOIN= new File(file.getParentFile().getAbsolutePath() + "/auto/inputs/");
+    	File AUTOOUT= new File(file.getParentFile().getAbsolutePath() + "/auto/outputs/");
+    	File dir = new File(file.getParentFile().getParentFile().getAbsolutePath());
+    	
+    	List<String> inpList = new ArrayList<String>(); //getting the names of the input files
+    	File[] inpFiles = AUTOIN.listFiles();
+    	for (File ff : inpFiles) {
+    	    if (ff.isFile()) {
+    	    	inpList.add(ff.getName());
+    	    }
+    	}
+    	java.util.Collections.sort(inpList); //sort them alphabetically
+    	
+    	String obj, cmd, cOutput, temp = "";
+    	String[] inputarr = {"v", "va", "u", "ua"}; //values for obj variable
+    	Process p;
+    	InputStream stderr = null;  
+	    InputStream stdout = null;
+	    
+	    for (int j = 0; j < inpList.size(); j++) //specifying inputs for Caspr program
+	    	temp = temp + (" --ann=" + AUTOIN + "/" + inpList.get(j));
+	    
+	    File results = new File(dir.getAbsolutePath() + "/results.txt"); //to save the results of Caspr program
+		if (results.exists())
+			results.delete();
+		results.createNewFile();
+		FileWriter fw = new FileWriter(results.getAbsoluteFile(), true);
+		BufferedWriter bw = new BufferedWriter(fw);
+	    
+	    for (int i = 0; i < inpList.size(); i++)
+    	{
+    		obj = inputarr[i];
+    		System.out.println("TEST RUN " + (i+1) + ": AUTO objective " + obj + " --all");
+
+    		cmd = "--canonicalize --obj=" + obj + " --all --out="+ file + "/out." + obj + ".conll \n" + temp; 
+    		
+    		p = Runtime.getRuntime().exec("python3 caspr " + cmd, null, dir);
+    		
+    		stdout = p.getInputStream ();
+    		stderr = p.getErrorStream ();
+    		
+    		BufferedReader br = new BufferedReader(new InputStreamReader(stdout)); //for standard console output
+    		while((cOutput = br.readLine()) != null)
+    			System.out.println(cOutput);
+    		br.close();
+    		
+    		br = new BufferedReader(new InputStreamReader(stderr)); //for error outputs
+    		while((cOutput = br.readLine()) != null)
+    		{
+    			bw.write(cOutput);
+    			bw.newLine();
+    			System.out.println(cOutput);
+    		}
+    		br.close();
+    		
+    		File file1= new File(file.getAbsolutePath()+ "/out." + obj + ".conll"); //to compare 2 files whether they are same or not
+    		File file2= new File(AUTOOUT.getAbsolutePath() + "/out." + obj + ".conll");
+    		byte[] f1 = Files.readAllBytes(file1.toPath());
+    		byte[] f2 = Files.readAllBytes(file2.toPath());
+    		if (Arrays.equals(f1, f2))
+    			System.out.println("TEST OK");
+    		else
+    		{
+    			System.out.println("TEST FAIL");
+    			FAIL++;
+    			System.out.println("see diff above");
+    		}
+    	}
+	    bw.close();
+	    System.out.println("Total Number of Fails: " + FAIL);
+    }
+    
+/*****************************Tolga****************************************************************************************************************/
     
     
     
@@ -1523,18 +1586,18 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
         
         
         
-        /*********************************************addedByTolga******************************************************************/
-        casprMenu = new JMenu("caspr");
-       
-        JCheckBoxMenuItem runWithCasprActionMenuItem = new JCheckBoxMenuItem("Run project with caspr tool");
-        runWithCasprActionMenuItem.setFont(MMAX2.getStandardFont());
-        runWithCasprActionMenuItem.setSelected(false);
+/*********************************************belowIsAddedByTolga*****************************************************************************************/
+        casprMenu = new JMenu("Caspr");
         
-        runWithCasprActionMenuItem.addActionListener(new ActionListener()
+        JCheckBoxMenuItem inputCasprActionMenuItem = new JCheckBoxMenuItem("Convert Mmax to Conll");
+        inputCasprActionMenuItem.setFont(MMAX2.getStandardFont());
+        inputCasprActionMenuItem.setSelected(false);
+        
+        inputCasprActionMenuItem.addActionListener(new ActionListener()
         {
            public void actionPerformed(java.awt.event.ActionEvent ae)
            {
-        	   JFileChooser fileC = new JFileChooser();
+        	   JFileChooser fileC = new JFileChooser(); //allow user to choose the mmax files
         	   if(fileC.showOpenDialog(null) == JFileChooser.APPROVE_OPTION)
         	   {
         		   java.io.File casprFile = fileC.getSelectedFile();
@@ -1546,28 +1609,42 @@ public class MMAX2 extends javax.swing.JFrame implements KeyListener ,java.awt.e
            		    }		});
            		   
            		   if(matchingFiles.length == 0)
-           			   JOptionPane.showMessageDialog(null, "There is no Coreference Annotations in this folder, Caspr can not be called!");
+           			   JOptionPane.showMessageDialog(null, "There must be Coreference Annotations to convert!");
            		   else {
 	           		   xmlFile = matchingFiles[0];
-	           		   System.out.println("Reading: " + xmlFile.getAbsolutePath());
+	           		   System.out.println("Converting from: " + xmlFile.getAbsolutePath());
 	           		   
 	           		   multValue multiple = readFile(xmlFile);
 	           		   List<markable> markArr = multiple.list;
 	           		   int max =  multiple.max;
-	           		   markArr.sort((markable m1,markable m2)->m2.getHeight()-m1.getHeight()); //buyukten kucuge (decremental)
-	           		   
+	           		   markArr.sort((markable m1,markable m2)->m2.getHeight()-m1.getHeight()); //decremental sort
 	        		
-	           		   Tutorial(markArr, max);
+	           		   conversionOutputName(markArr, max);
            		   }
         	   }
            }
         });
+        casprMenu.add(inputCasprActionMenuItem);
+        
+        JCheckBoxMenuItem runWithCasprActionMenuItem = new JCheckBoxMenuItem("Run Project With Caspr Tool");
+        runWithCasprActionMenuItem.setFont(MMAX2.getStandardFont());
+        runWithCasprActionMenuItem.setSelected(false);
+        
+        runWithCasprActionMenuItem.addActionListener(new ActionListener()
+        {
+           public void actionPerformed(java.awt.event.ActionEvent ae)
+           {
+        	   System.out.println("Running Caspr: ");
+        	   try {
+				runCaspr();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+           }
+        });
         casprMenu.add(runWithCasprActionMenuItem);
         
-        
-        
-        
-        /***************************Tolga***********************************************************************************************/
+/****************************Tolga*****************************************************************************************************************/
         
         settingsMenu.setEnabled(false);
         
